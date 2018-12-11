@@ -1,0 +1,9 @@
+{
+"AWS": {
+    "aws_access_key_id": "xxx",
+    "aws_secret_access_key": "xxx",
+    "region": "us-east-1",
+    "bucket": "discordimages"
+},
+"defaultFolder": "node-rekognition-folder/"
+}

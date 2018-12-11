@@ -1,0 +1,22 @@
+{
+  "help": {
+    "example":"!<ban|b> <@user> [reason]",
+    "desc":"Get Help on a Bot Functions or a specific command.",
+    "perms":"SEND_MESSAGES",
+    "func":"help"
+  },
+  "say": {
+    "example":"!say <message>",
+    "desc":"Allows a user with correct privileges to send a message as the bot. If bot has correct permissions, it will delete evidence of the command being sent.",
+    "perms":"MANAGE_MESSAGES",
+    "func":"sendMessage",
+    "args":"`quot = ${args.join(' ')}`"
+  },
+  "version": {
+    "example":"!version",
+    "desc":"Sends a message to the current channel displaying the current bot version.",
+    "perms":"SEND_MESSAGES",
+    "func":"sendMessage",
+    "args":"`[${config.appname}] - Version ` + (config.version)"
+  }
+}

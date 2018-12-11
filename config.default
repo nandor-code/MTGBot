@@ -1,0 +1,10 @@
+{ 
+  "token"  : "Your-Sup3r-S3r3ct-Squ1rrel-T0k3n",
+  "prefix" : "!",
+  "version": "1.1.0"
+  "appname": "DiscordBot",
+  "owner_id" : "1234567890123456",
+  "topMenu": "\nHelp Menu <required> [optional]\n----------------------------------------------------\n",
+  "botMenu": "For more info on a command try: '**!help [command]**'",
+  "debugMode": 0
+}
