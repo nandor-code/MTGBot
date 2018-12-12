@@ -1,4 +1,4 @@
-const ver = require('./version.json').version.substring(1,8);
+const ver = require('./version.json').version.substring(0,7);
 
 // Load config file
 const config = require("../config/config.json");
