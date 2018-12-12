@@ -169,7 +169,7 @@ cmds.findAllCards = function( cmdArgs, args, message )
                     {
                         sendCard( message, card );
                         i += 1;
-                        if( i > 20 ) { return; }
+                        if( i > 99 ) { return; }
                     });
                 } );
             } );
