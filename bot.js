@@ -13,9 +13,6 @@ AWS.config.update({
 const rp = require('request-promise');
 const querystring = require('querystring');
 
-const client_id="16668623-7DD0-4117-8C85-EE4C892A28EA";
-const client_secret="E362536A-505D-4E77-9542-D87EC183ED2F";
-
 const uri_base = 'api.tcgplayer.com';
 const api_ver  = 'v1.17.0';
 
@@ -28,6 +25,9 @@ const cmdList = require("../config/commands.json");
 
 // Load config file
 const config = require("../config/config.json");
+
+const client_id=config.client_id;
+const client_secret=config.client_secret;
 
 // Import HTTP libs
 const http   = require('http'),
