@@ -141,7 +141,7 @@ cmds.findCard = function( cmdArgs, args, message )
             {
                 getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
                     var jsonCard = JSON.parse( cardresults );
-                    console.log( jsonCard );
+                    //console.log( jsonCard );
                     if( jsonCard.results.length > 0 ) 
                     {
                         printCard( message, jsonCard.results[0] );
