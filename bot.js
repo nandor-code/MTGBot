@@ -152,6 +152,31 @@ cmds.findCard = function( cmdArgs, args, message )
     } );
 }
 
+cmds.findAllCards = function( cmdArgs, args, message )
+{
+    var term = eval( cmdArgs );
+    getRPBT().then( function ( token ) {
+        searchCards( "/" + api_ver + "/catalog/categories/1/search", token.access_token, term, function( results ) {
+            var jsonResult = JSON.parse( results );
+            message.author.send( "Found " + jsonResult.totalItems + " results for: '" + term + "'" );
+            if( jsonResult.totalItems > 0 )
+            {
+                getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
+                    var jsonCard = JSON.parse( cardresults );
+                    //console.log( jsonCard );
+                    var i = 0;
+                    jsonCard.results.forEach( function( card )  
+                    {
+                        sendCard( message, card );
+                        i += 1;
+                        if( i > 20 ) { return; }
+                    });
+                } );
+            }
+        } );
+    } );
+}
+
 cmds.findCardDDB = function( cmdArgs, args, message )
 {
     currentSearch.term = eval( cmdArgs );
@@ -218,6 +243,25 @@ function printCard( message, card )
     });
     message.channel.send( embed );
 }
+
+function sendCard( message, card )
+{
+    var extData  = "";
+    var embed = new Discord.RichEmbed(
+        {
+            url: card.url,
+            title: card.name,
+            thumbnail: {
+                url: card.imageUrl
+            }
+        } );
+    card.extendedData.forEach( function( extObj ) {
+        var value = extObj.value.replace( /<[^>]*>/g, '' );
+        embed.addField( extObj.displayName, value, true );
+    });
+    message.author.send( embed );
+}
+
 // Help Func
 cmds.help = function( cmdArgs, args, message )
 {
