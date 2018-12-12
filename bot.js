@@ -34,6 +34,13 @@ const cmds = require('./cmdHandlers');
 cmds.cmdList = require("../config/commands.json");
 cmds.initialize( config, tcgApi, helpers );
 
+const imgRek = require("./imageRek");
+imgRek.rekognition = rekognition;
+imgRek.helpers     = helpers;
+imgRek.http        = http;
+imgRek.https       = https;
+
+
 const querystring = require('querystring');
 
 // Import HTTP libs
@@ -132,7 +139,7 @@ function handleMessageImage( message )
 
         if( type )
         {
-            handleImage( message, url );
+            imgRek.handleImage( message, url );
         }
         else
         {
@@ -140,59 +147,3 @@ function handleMessageImage( message )
         }
     }
 }
-
-// Image Detection
-function handleImage( message, url )
-{
-    helpers.logDebug(url);
-    var httpHandler = http;
-
-    if( url.match(/https/i) )
-    {
-        httpHandler = https;    
-    }
-    // get image data
-    httpHandler.request(url, function(response) {                                        
-        var data = [];
-
-        response.on('data', function(chunk) {                                       
-            data.push(chunk);
-        });                                                                         
-
-        response.on('end', function() {                                             
-            helpers.logDebug('Image Downloaded!' );
-            var image = Buffer.concat(data);
-
-            var params = {
-                Image: {
-                        Bytes: image
-                },
-                MaxLabels: 10,
-                MinConfidence: 50.0
-            };
-
-            rekognition.detectLabels(params, function(err, data) {
-                if (err) {
-                    helpers.logInfo( err, true ); // an error occurred
-                } else {
-                   var reply = ""
-                   data.Labels.forEach( function( label )
-                   {
-                       if( reply === "" )
-                       {
-                           reply += "I am ";
-                       }
-                       else
-                       {
-                          reply += " and ";
-                       }
-                       reply += label.Confidence.toFixed(0) + "% sure that is a " + label.Name;
-                   });
-                   reply += "!";
-                   message.channel.send(reply);
-                }
-            });
-        });                                                                         
-    }).end();
-}
-
