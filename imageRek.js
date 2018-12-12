@@ -34,7 +34,7 @@ handleImage: function( message, url )
                 MinConfidence: 50.0
             };
 
-            this.rekognition.detectLabels(params, function(err, data) {
+            this.rekognition.detectLabels(params, ( function(err, data) {
                 if (err) {
                     helpers.logInfo( err, true ); // an error occurred
                 } else {

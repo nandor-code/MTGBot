@@ -6,6 +6,10 @@ const config = require("../config/config.json");
 // include image recognition
 const AWS = require('aws-sdk');
 
+// Import HTTP libs
+const http   = require('http'),
+      https  = require('https');
+
 const AWSParameters = require('../config/aws.json');
 AWS.config.update({
     accessKeyId: AWSParameters.AWS.aws_access_key_id,
@@ -40,12 +44,7 @@ imgRek.helpers     = helpers;
 imgRek.http        = http;
 imgRek.https       = https;
 
-
 const querystring = require('querystring');
-
-// Import HTTP libs
-const http   = require('http'),
-      https  = require('https');
 
 // Debug Mode - gives me access by user id to certain commands while on
 const debugMode = config.debugMode;
