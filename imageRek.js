@@ -23,7 +23,7 @@ handleImage: function( message, url )
         } ).bind(this) );
 
         response.on('end', ( function() {
-            helpers.logDebug('Image Downloaded!' );
+            this.helpers.logDebug('Image Downloaded!' );
             var image = Buffer.concat(data);
 
             var params = {
@@ -36,7 +36,7 @@ handleImage: function( message, url )
 
             this.rekognition.detectLabels(params, ( function(err, data) {
                 if (err) {
-                    helpers.logInfo( err, true ); // an error occurred
+                    this.helpers.logInfo( err, true ); // an error occurred
                 } else {
                    var reply = ""
                    data.Labels.forEach( function( label )
