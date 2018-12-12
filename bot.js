@@ -123,7 +123,7 @@ function handleMessageImage( message )
 
     if( url && url.length > 0 )
     {
-        logInfo( "Got URL: " + url );
+        logDebug( "Got URL: " + url );
         var type = url.match(/jpg|jpeg|png/i);
 
         if( type )
@@ -132,7 +132,7 @@ function handleMessageImage( message )
         }
         else
         {
-            logInfo( "Attachement was not valid image type: " + url );
+            logDebug( "Attachement was not valid image type: " + url );
         }
     }
 }
@@ -227,7 +227,7 @@ cmds.help = function( cmdArgs, args, message )
 // Image Detection
 function handleImage( message, url )
 {
-    logInfo(url);
+    logDebug(url);
     var httpHandler = http;
 
     if( url.match(/https/i) )
@@ -243,7 +243,7 @@ function handleImage( message, url )
         });                                                                         
 
         response.on('end', function() {                                             
-            logInfo('Image Downloaded!' );
+            logDebug('Image Downloaded!' );
             var image = Buffer.concat(data);
 
             var params = {
@@ -256,7 +256,7 @@ function handleImage( message, url )
 
             rekognition.detectLabels(params, function(err, data) {
                 if (err) {
-                    logInfo(err); // an error occurred
+                    logInfo( err, true ); // an error occurred
                 } else {
                    var reply = ""
                    data.Labels.forEach( function( label )
@@ -337,7 +337,7 @@ function getHelp(args, message)
     }
     catch(error)
     {
-        logInfo(error.message, true);
+        logInfo( error.message, true );
     }
 }
 
@@ -360,7 +360,7 @@ function getUrl( hostName, pathToData, callBack )
 
     request.on('error', function (e)
     {
-        logInfo(e.message);
+        logInfo( e.message, true );
     });
 
     request.end();
@@ -423,7 +423,7 @@ function arrayRemove(arr, item)
         if (arr[i] === item)
         {
             arr.splice(i, 1);
-            logInfo("Removed " + item + " from " + arr + " array at index [" + i + "]");
+            logDebug("Removed " + item + " from " + arr + " array at index [" + i + "]");
         }
     }
 }
