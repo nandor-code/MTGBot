@@ -159,9 +159,9 @@ cmds.findAllCards = function( cmdArgs, args, message )
         searchCards( "/" + api_ver + "/catalog/categories/1/search", token.access_token, term, function( results ) {
             var jsonResult = JSON.parse( results );
             message.author.send( "Found " + jsonResult.totalItems + " results for: '" + term + "'" );
-            if( jsonResult.totalItems > 0 )
+            jsonResult.results.forEach( function (sku)
             {
-                getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
+                getCard( "/" + api_ver + "/catalog/products/" + sku + "?getExtendedFields=true", token.access_token, function( cardresults ) {
                     var jsonCard = JSON.parse( cardresults );
                     //console.log( jsonCard );
                     var i = 0;
@@ -172,7 +172,7 @@ cmds.findAllCards = function( cmdArgs, args, message )
                         if( i > 20 ) { return; }
                     });
                 } );
-            }
+            } );
         } );
     } );
 }
