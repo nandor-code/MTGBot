@@ -15,18 +15,26 @@ AWS.config.update({
 
 const rekognition = new AWS.Rekognition();
 
-const rp = require('request-promise');
+// Load base, create a client connection, and load our configuration
+const Discord = require("discord.js");
+const client = new Discord.Client();
+
+const helpers = require("./botHelpers");
+helpers.debugMode = config.debugMode;
+helpers.appName   = config.appname;
+
+const tcgApi = require("./tcgApi");
+tcgApi.uri_base      = config.tcg_api_endpoint;
+tcgApi.api_ver       = config.tcg_api_ver;
+tcgApi.client_id     = config.client_id;
+tcgApi.client_secret = config.client_secret;
+tcgApi.discord       = Discord;
+
+const cmds = require('./cmdHandlers');
+cmds.cmdList = require("../config/commands.json");
+cmds.initialize( config, tcgApi, helpers );
+
 const querystring = require('querystring');
-
-const uri_base = config.tcg_api_endpoint;
-const api_ver  = config.tcg_api_ver;
-
-// include helpers
-const cmdList = require("../config/commands.json");
-
-const client_id=config.client_id;
-const client_secret=config.client_secret;
-const maxPMs=config.maxPMs;
 
 // Import HTTP libs
 const http   = require('http'),
@@ -39,29 +47,25 @@ const debugMode = config.debugMode;
 // to letters (something it could never be) when not in use
 const bypassId = config.owner_id;
 
-logInfo(`DiscordBot ${config.version} (${ver}) starting up with owner ${config.owner_id}.`);
+helpers.logInfo(`DiscordBot ${config.version} (${ver}) starting up with owner ${config.owner_id}.`);
 
 // Anti-Spam Functions - Do not let users flood the bot/channel
 var lastResponse = new Array ("Empty");
 var spamTimeout = 600000;
 var maxFileSize = 5 * 1024 * 1024; // 5 MB
     
-// Load base, create a client connection, and load our configuration
-const Discord = require("discord.js");
-const client = new Discord.Client();
-
 // Perform on connect/disconnect
 client.on("ready", () => {
-    logInfo(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} servers.`);
+    helpers.logInfo(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} servers.`);
     client.user.setActivity(`MTGArena (` + ver + `)`);
 });
 
 client.on("guildCreate", guild => {
-    logInfo(`New server joined: ${guild.name} (id: ${guild.id}). This server has ${guild.memberCount} members!`);
+    helpers.logInfo(`New server joined: ${guild.name} (id: ${guild.id}). This server has ${guild.memberCount} members!`);
 });
 
 client.on("guildDelete", guild => {
-    logInfo(`I have been removed from: ${guild.name} (id: ${guild.id})`);
+    helpers.logInfo(`I have been removed from: ${guild.name} (id: ${guild.id})`);
 });
 
 // Listen for commands
@@ -95,12 +99,12 @@ function handleMessageCommand( message )
         const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
         const command = args.shift().toLowerCase();
 
-        if(command in cmdList)
+        if(command in cmds.cmdList)
         {
-            if(perms && !perms.has(cmdList[command].perms))
+            if(perms && !perms.has(cmds.cmdList[command].perms))
                 return message.reply("Sorry, you don't have permissions to use this!");
 
-            cmds[cmdList[command].func]( cmdList[command].args, args, message );
+            cmds[cmds.cmdList[command].func]( cmds.cmdList[command].args, args, message );
         }
     }
 }
@@ -123,7 +127,7 @@ function handleMessageImage( message )
 
     if( url && url.length > 0 )
     {
-        logDebug( "Got URL: " + url );
+        helpers.logDebug( "Got URL: " + url );
         var type = url.match(/jpg|jpeg|png/i);
 
         if( type )
@@ -132,102 +136,15 @@ function handleMessageImage( message )
         }
         else
         {
-            logDebug( "Attachement was not valid image type: " + url );
+            helpers.logDebug( "Attachement was not valid image type: " + url );
         }
-    }
-}
-
-// Command Helpers
-var cmds = {};
-cmds.sendMessage = function( cmdArgs, args, message )
-{
-     message.channel.send(eval(cmdArgs));
-}
-
-var currentSearch = { params: {}, message: undefined, resultCount: 0, term: "", topResults: [] };
-
-cmds.findCard = function( cmdArgs, args, message )
-{
-    var term = eval( cmdArgs );
-    getRPBT().then( function ( token ) {
-        searchCards( "/" + api_ver + "/catalog/categories/1/search", token.access_token, term, function( results ) {
-            var jsonResult = JSON.parse( results );
-            message.channel.send( "Found " + jsonResult.totalItems + " results for: '" + term + "'" );
-            if( jsonResult.totalItems > 0 )
-            {
-                getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
-                    var jsonCard = JSON.parse( cardresults );
-                    logDebug( JSON.stringify( jsonCard ) );
-                    if( jsonCard.results.length > 0 ) 
-                    {
-                        sendCard( message.channel, jsonCard.results[0] );
-                    }
-                } );
-            }
-        } );
-    } );
-}
-
-cmds.findAllCards = function( cmdArgs, args, message )
-{
-    var term = eval( cmdArgs );
-    getRPBT().then( function ( token ) {
-        searchCards( "/" + api_ver + "/catalog/categories/1/search", token.access_token, term, function( results ) {
-            var jsonResult = JSON.parse( results );
-            message.author.send( "Found " + jsonResult.totalItems + " results for: '" + term + "'" );
-            jsonResult.results.forEach( function (sku)
-            {
-                getCard( "/" + api_ver + "/catalog/products/" + sku + "?getExtendedFields=true", token.access_token, function( cardresults ) {
-                    var jsonCard = JSON.parse( cardresults );
-                    logDebug( JSON.stringify( jsonCard ) );
-                    var i = 0;
-                    jsonCard.results.forEach( function( card )  
-                    {
-                        sendCard( message.author, card );
-                        i += 1;
-                        if( i >= maxPMs ) { return; }
-                    });
-                } );
-            } );
-        } );
-    } );
-}
-
-function sendCard( channel, card )
-{
-    var extData  = "";
-    var embed = new Discord.RichEmbed(
-        {
-            url: card.url,
-            title: card.name,
-            thumbnail: {
-                url: card.imageUrl
-            }
-        } );
-    card.extendedData.forEach( function( extObj ) {
-        var value = extObj.value.replace( /<[^>]*>/g, '' );
-        embed.addField( extObj.displayName, value, true );
-    });
-    channel.send( embed );
-}
-
-// Help Func
-cmds.help = function( cmdArgs, args, message )
-{
-    if (args.length == 0)
-    {
-        generalHelp(message);
-    }
-    else
-    {
-        getHelp(args, message);
     }
 }
 
 // Image Detection
 function handleImage( message, url )
 {
-    logDebug(url);
+    helpers.logDebug(url);
     var httpHandler = http;
 
     if( url.match(/https/i) )
@@ -243,7 +160,7 @@ function handleImage( message, url )
         });                                                                         
 
         response.on('end', function() {                                             
-            logDebug('Image Downloaded!' );
+            helpers.logDebug('Image Downloaded!' );
             var image = Buffer.concat(data);
 
             var params = {
@@ -256,7 +173,7 @@ function handleImage( message, url )
 
             rekognition.detectLabels(params, function(err, data) {
                 if (err) {
-                    logInfo( err, true ); // an error occurred
+                    helpers.logInfo( err, true ); // an error occurred
                 } else {
                    var reply = ""
                    data.Labels.forEach( function( label )
@@ -279,285 +196,3 @@ function handleImage( message, url )
     }).end();
 }
 
-// Main Help Menu
-function generalHelp(message)
-{
-    let hArray = new Array();
-    for (var key in cmdList)
-    {
-        hArray.push(key);
-    }
-    message.author.send(config.topMenu + "Command List:\n\n " + hArray.toString().replace(/,/g, " ") + "\n\n" + config.botMenu);
-}
-
-// Help Sub-Menus
-function getHelp(args, message)
-{
-    try {
-        let arg1 = args[0];
-        let arg2 = args[1];
-        if (!isEmpty(arg1))
-        {
-            if (!isEmpty(cmdList[arg1]))
-            {
-                let example = cmdList[arg1]['example'];
-                let desc = cmdList[arg1]['desc'];
-                let cmdPerm = (message.member.permissions.has(cmdList[arg1]['perms']) ? "yes" : "no" );
-                if (arg1.toString().toLowerCase() === 'set' && isEmpty(arg2))
-                {
-                    let optionsArray = new Array();
-                    for(var key in cmdList['set']['options'])
-                    {
-                        optionsArray.push(key);
-                    }
-
-                    message.author.send(config.topMenu + "Command: " + arg1 + "\n\nSyntax: " + example + "\n\n" + "Description: " + desc + "\n\nOptions Available: " + optionsArray.toString().replace(/,/g, " ") + "\n\nFor more information on an option '**!help set <option>**'\n\nCan I use this? " + cmdPerm);
-                    return;
-                }
-                if (arg1.toString().toLowerCase() === 'set' && !isEmpty(arg2) && !isEmpty(cmdList[arg1]['options'][arg2]))
-                {
-                    example = cmdList[arg1]['options'][arg2]['example'];
-                    desc = cmdList[arg1]['options'][arg2]['desc'];
-                    cmdPerm = (message.member.permissions.has(cmdList[arg1]['options'][arg2]['perms']) ? "yes" : "no" );
-                    message.author.send(config.topMenu + "Command: " + arg1 + " " + arg2 + "\n\nSyntax: " + example + "\n\n" + "Description: " + desc + "\n\nCan I use this? " + cmdPerm);
-                    return;
-                }
-                else
-                {
-                    message.author.send(config.topMenu + "Command: " + arg1 + "\n\nSyntax: " + example + "\n\n" + "Description: " + desc + "\n\nCan I use this? " + cmdPerm);
-                    return;
-                }
-            }
-            else
-            {
-                message.author.send(`[${config.appname}] Error: No such command. For a list of commands type '**!help**' with no arguments in any channel.`);
-                return;
-            }
-        }
-    }
-    catch(error)
-    {
-        logInfo( error.message, true );
-    }
-}
-
-// Generic Helpers
-function getUrl( hostName, pathToData, callBack )
-{
-    var data = '';
-
-    var request = http.request( { host: hostName, path: pathToData }, function (res)
-    {
-        res.on('data', function (chunk)
-        {
-            data += chunk;
-        });
-        res.on('end', function ()
-        {
-           callBack( data );
-        });
-    });
-
-    request.on('error', function (e)
-    {
-        logInfo( e.message, true );
-    });
-
-    request.end();
-}
-
-// Log certain items or errors
-function logDebug( message )
-{
-    if( config.debugMode ) { logInfo( message ); }
-}
-
-function logInfo( message, isError = false )
-{
-    if( !isError )
-    {
-        console.log(`[${config.appname}] ` + displayTime() + "> " + message);
-    }
-    else
-    {
-        console.error(`[${config.appname}] ` + displayTime() + "> " + message);
-    }
-}
-
-// Format Timestamps
-function displayTime() {
-    var str = "";
-    var currentTime = new Date()
-    var hours = currentTime.getHours()
-    var minutes = currentTime.getMinutes()
-    var seconds = currentTime.getSeconds()
-
-    if (minutes < 10)
-    {
-        minutes = "0" + minutes
-    }
-
-    if (seconds < 10)
-    {
-        seconds = "0" + seconds
-    }
-
-    str += hours + ":" + minutes + ":" + seconds + " ";
-
-    if(hours > 11)
-    {
-        str += "PM"
-    }
-    else
-    {
-        str += "AM"
-    }
-    return str;
-}
-
-// Remove item from array when callback is needed.
-function arrayRemove(arr, item)
-{
-    for (var i = arr.length; i--;)
-    {
-        if (arr[i] === item)
-        {
-            arr.splice(i, 1);
-            logDebug("Removed " + item + " from " + arr + " array at index [" + i + "]");
-        }
-    }
-}
-
-// Is passed variable a number?
-function isNumeric(n)
-{
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
-
-// Is passed variable or array empty
-function isEmpty(obj)
-{
-    for(var key in obj)
-    {
-        if(obj.hasOwnProperty(key))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-// Prototype Extensions
-// Does an array contain an item?
-Array.prototype.contains = function(obj)
-{
-    return this.indexOf(obj) > -1;
-};
-
-// Remove all instances of an item from an array
-Array.prototype.remove = function(item)
-{
-    for (var i = this.length; i--;)
-    {
-        if (this[i] === item)
-        {
-            this.splice(i, 1);
-        }
-    }
-}
-
-async function getRPBT()
-{
-    var options = {
-        method: 'POST',
-        uri: 'https://' + uri_base + '/token',
-        form: {
-            'grant_type': 'client_credentials',
-            'client_id' : client_id,
-            'client_secret' : client_secret
-        },
-        json: true
-    };
-    try {
-        const response = await rp(options);
-        return Promise.resolve( response );
-    }
-    catch( error ) {
-        Promise.reject(error);
-    }
-}
-
-function searchCards( path, access_token, term, callBack )
-{
-    var data = ""
-    var body = JSON.stringify({
-            filters: [
-                {
-                  name: "ProductName",
-                  values:[term]
-                } ] } );
-
-    var options = {
-        method: 'POST',
-        host: uri_base,
-        path: path,
-        headers: {
-            'Content-Type': "application/json",
-            'Content-Length': Buffer.byteLength(body),
-            'Authorization': 'Bearer ' + access_token
-        }
-    };
-
-    var request = https.request( options, function (res)
-    {
-        res.on('data', function (chunk)
-        {
-            data += chunk;
-        });
-        res.on('end', function ()
-        {
-           callBack( data );
-        });
-    });
-
-    request.on('error', function (e)
-    {
-        logInfo( e.message, true );
-    });
-
-    request.write( body );
-    request.end();
-}
-
-function getCard( path, access_token, callBack )
-{
-    var data = ""
-
-    var options = {
-        method: 'GET',
-        host: uri_base,
-        path: path,
-        headers: {
-            'Authorization': 'Bearer ' + access_token
-        }
-    };
-
-    var request = https.request( options, function (res)
-    {
-        res.on('data', function (chunk)
-        {
-            data += chunk;
-        });
-        res.on('end', function ()
-        {
-           callBack( data );
-        });
-    });
-
-    request.on('error', function (e)
-    {
-        logInfo( e.message, true );
-    });
-
-    request.end();
-}
