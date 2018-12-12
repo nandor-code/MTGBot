@@ -54,7 +54,7 @@ const client = new Discord.Client();
 // Perform on connect/disconnect
 client.on("ready", () => {
     logIt(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} servers.`);
-    client.user.setActivity(`MTGA (` + ver + `)`);
+    client.user.setActivity(`MTGArena (` + ver + `)`);
 });
 
 client.on("guildCreate", guild => {
