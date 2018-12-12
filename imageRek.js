@@ -20,7 +20,7 @@ handleImage: function( message, url )
 
         response.on('data', ( function(chunk) {
             data.push(chunk);
-        });
+        } ).bind(this) );
 
         response.on('end', ( function() {
             helpers.logDebug('Image Downloaded!' );
