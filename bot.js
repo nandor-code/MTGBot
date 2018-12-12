@@ -1,4 +1,3 @@
-// import version
 const ver = require('./version.json').version.substring(1,8);
 
 // include image recognition
@@ -10,6 +9,17 @@ AWS.config.update({
     secretAccessKey: AWSParameters.AWS.aws_secret_access_key,
     region: AWSParameters.AWS.region
 });
+
+const rp = require('request-promise');
+const querystring = require('querystring');
+
+const client_id="16668623-7DD0-4117-8C85-EE4C892A28EA";
+const client_secret="E362536A-505D-4E77-9542-D87EC183ED2F";
+
+const uri_base = 'api.tcgplayer.com';
+const api_ver  = 'v1.17.0';
+
+const docClient = new AWS.DynamoDB.DocumentClient({region: "us-east-2"});
 
 const rekognition = new AWS.Rekognition();
 
@@ -44,7 +54,7 @@ const client = new Discord.Client();
 // Perform on connect/disconnect
 client.on("ready", () => {
     logIt(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} servers.`);
-    client.user.setActivity(`EverQuest (` + ver + `)`);
+    client.user.setActivity(`MTGA (` + ver + `)`);
 });
 
 client.on("guildCreate", guild => {
@@ -109,21 +119,6 @@ function handleMessageImage( message )
     {
         url = message.attachments.array()[0].url;
     }
-
-    if( url && url.length > 0 )
-    {
-        logIt( "Got URL: " + url );
-        var type = url.match(/jpg|jpeg|png/i);
-
-        if( type )
-        {
-            handleImage( message, url );
-        }
-        else
-        {
-            logIt( "Attachement was not valid image type: " + url );
-        }
-    }
 }
 
 // Command Helpers
@@ -131,6 +126,97 @@ var cmds = {};
 cmds.sendMessage = function( cmdArgs, args, message )
 {
      message.channel.send(eval(cmdArgs));
+}
+
+var currentSearch = { params: {}, message: undefined, resultCount: 0, term: "", topResults: [] };
+
+cmds.findCard = function( cmdArgs, args, message )
+{
+    var term = eval( cmdArgs );
+    getRPBT().then( function ( token ) {
+        searchCards( "/" + api_ver + "/catalog/categories/1/search", token.access_token, term, function( results ) {
+            var jsonResult = JSON.parse( results );
+            message.channel.send( "Found " + jsonResult.totalItems + " results for: '" + term + "'" );
+            if( jsonResult.totalItems > 0 )
+            {
+                getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
+                    var jsonCard = JSON.parse( cardresults );
+                    console.log( jsonCard );
+                    if( jsonCard.results.length > 0 ) 
+                    {
+                        printCard( message, jsonCard.results[0] );
+                    }
+                } );
+            }
+        } );
+    } );
+}
+
+cmds.findCardDDB = function( cmdArgs, args, message )
+{
+    currentSearch.term = eval( cmdArgs );
+    currentSearch.topResults = [];
+    currentSearch.resultCount = 0;
+    currentSearch.message = message;
+    currentSearch.params = {
+        TableName: 'TCGPlayersSync',
+        ExclusiveStartKey: undefined,
+        ScanFilter: {
+           "name": {
+                ComparisonOperator: "CONTAINS",
+                AttributeValueList: [ currentSearch.term ]
+           }
+        }
+      };
+
+    docClient.scan(currentSearch.params, onScan);
+}
+
+function onScan( err, data )
+{
+    if (err) {
+        console.log(err);
+    }else{
+        //console.log(data);
+        currentSearch.resultCount += data.Items.length;
+        if( data.Items.length > 0 )
+        {
+            data.Items.forEach( function( item ) { currentSearch.topResults.push( item ); });
+            //console.log("Found Card item " + data.Items.length + " matching cards.");
+            //printCard( data.Items[0] );
+        }
+
+        if (typeof data.LastEvaluatedKey != "undefined") {
+            currentSearch.params.ExclusiveStartKey = data.LastEvaluatedKey;
+            docClient.scan(currentSearch.params, onScan);
+        }
+        else
+        {
+            currentSearch.message.channel.send( "Found " + currentSearch.resultCount + " results for: '" + currentSearch.term + "'" );
+            if( currentSearch.topResults.length > 0 )
+            {
+                printCard( currentSearch.message, currentSearch.topResults[0] );
+            }
+        }
+    }
+}
+
+function printCard( message, card )
+{
+    var extData  = "";
+    var embed = new Discord.RichEmbed(
+        {
+            url: card.url,
+            title: card.name,
+            thumbnail: {
+                url: card.imageUrl
+            }
+        } );
+    card.extendedData.forEach( function( extObj ) {
+        var value = extObj.value.replace( /<[^>]*>/g, '' );
+        embed.addField( extObj.displayName, value, true );
+    });
+    message.channel.send( embed );
 }
 // Help Func
 cmds.help = function( cmdArgs, args, message )
@@ -382,4 +468,100 @@ Array.prototype.remove = function(item)
             this.splice(i, 1);
         }
     }
+}
+
+async function getRPBT()
+{
+    var options = {
+        method: 'POST',
+        uri: 'https://' + uri_base + '/token',
+        form: {
+            'grant_type': 'client_credentials',
+            'client_id' : client_id,
+            'client_secret' : client_secret
+        },
+        json: true
+    };
+    try {
+        const response = await rp(options);
+        return Promise.resolve( response );
+    }
+    catch( error ) {
+        Promise.reject(error);
+    }
+}
+
+function searchCards( path, access_token, term, callBack )
+{
+    var data = ""
+    var body = JSON.stringify({
+            filters: [
+                {
+                  name: "ProductName",
+                  values:[term]
+                } ] } );
+
+    var options = {
+        method: 'POST',
+        host: uri_base,
+        path: path,
+        headers: {
+            'Content-Type': "application/json",
+            'Content-Length': Buffer.byteLength(body),
+            'Authorization': 'Bearer ' + access_token
+        }
+    };
+
+    var request = https.request( options, function (res)
+    {
+        res.on('data', function (chunk)
+        {
+            data += chunk;
+        });
+        res.on('end', function ()
+        {
+           callBack( data );
+        });
+    });
+
+    request.on('error', function (e)
+    {
+        console.log(e.message);
+    });
+
+    request.write( body );
+    request.end();
+}
+
+function getCard( path, access_token, callBack )
+{
+    var data = ""
+
+    var options = {
+        method: 'GET',
+        host: uri_base,
+        path: path,
+        headers: {
+            'Authorization': 'Bearer ' + access_token
+        }
+    };
+
+    var request = https.request( options, function (res)
+    {
+        res.on('data', function (chunk)
+        {
+            data += chunk;
+        });
+        res.on('end', function ()
+        {
+           callBack( data );
+        });
+    });
+
+    request.on('error', function (e)
+    {
+        console.log(e.message);
+    });
+
+    request.end();
 }
