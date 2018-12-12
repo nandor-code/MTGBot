@@ -1,5 +1,8 @@
 const ver = require('./version.json').version.substring(1,8);
 
+// Load config file
+const config = require("../config/config.json");
+
 // include image recognition
 const AWS = require('aws-sdk');
 
@@ -10,24 +13,20 @@ AWS.config.update({
     region: AWSParameters.AWS.region
 });
 
+const rekognition = new AWS.Rekognition();
+
 const rp = require('request-promise');
 const querystring = require('querystring');
 
-const uri_base = 'api.tcgplayer.com';
-const api_ver  = 'v1.17.0';
-
-const docClient = new AWS.DynamoDB.DocumentClient({region: "us-east-2"});
-
-const rekognition = new AWS.Rekognition();
+const uri_base = config.tcg_api_endpoint;
+const api_ver  = config.tcg_api_ver;
 
 // include helpers
 const cmdList = require("../config/commands.json");
 
-// Load config file
-const config = require("../config/config.json");
-
 const client_id=config.client_id;
 const client_secret=config.client_secret;
+const maxPMs=config.maxPMs;
 
 // Import HTTP libs
 const http   = require('http'),
@@ -40,7 +39,7 @@ const debugMode = config.debugMode;
 // to letters (something it could never be) when not in use
 const bypassId = config.owner_id;
 
-logIt(`DiscordBot ${config.version} (${ver}) starting up with owner ${config.owner_id}.`);
+logInfo(`DiscordBot ${config.version} (${ver}) starting up with owner ${config.owner_id}.`);
 
 // Anti-Spam Functions - Do not let users flood the bot/channel
 var lastResponse = new Array ("Empty");
@@ -53,16 +52,16 @@ const client = new Discord.Client();
 
 // Perform on connect/disconnect
 client.on("ready", () => {
-    logIt(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} servers.`);
+    logInfo(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} servers.`);
     client.user.setActivity(`MTGArena (` + ver + `)`);
 });
 
 client.on("guildCreate", guild => {
-    logIt(`New server joined: ${guild.name} (id: ${guild.id}). This server has ${guild.memberCount} members!`);
+    logInfo(`New server joined: ${guild.name} (id: ${guild.id}). This server has ${guild.memberCount} members!`);
 });
 
 client.on("guildDelete", guild => {
-    logIt(`I have been removed from: ${guild.name} (id: ${guild.id})`);
+    logInfo(`I have been removed from: ${guild.name} (id: ${guild.id})`);
 });
 
 // Listen for commands
@@ -108,6 +107,8 @@ function handleMessageCommand( message )
 
 function handleMessageImage( message )
 {
+    if( config.imageDetection === 0 ) { return; }
+
     var url = ""
     var matchAry = message.content.match(/\bhttps?:\/\/\S+/gi);
 
@@ -118,6 +119,21 @@ function handleMessageImage( message )
     else if( message.attachments.array().length > 0 && message.attachments.array()[0].filesize < maxFileSize )
     {
         url = message.attachments.array()[0].url;
+    }
+
+    if( url && url.length > 0 )
+    {
+        logInfo( "Got URL: " + url );
+        var type = url.match(/jpg|jpeg|png/i);
+
+        if( type )
+        {
+            handleImage( message, url );
+        }
+        else
+        {
+            logInfo( "Attachement was not valid image type: " + url );
+        }
     }
 }
 
@@ -141,10 +157,10 @@ cmds.findCard = function( cmdArgs, args, message )
             {
                 getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
                     var jsonCard = JSON.parse( cardresults );
-                    //console.log( jsonCard );
+                    logDebug( jsonCard );
                     if( jsonCard.results.length > 0 ) 
                     {
-                        printCard( message, jsonCard.results[0] );
+                        sendCard( message.channel, jsonCard.results[0] );
                     }
                 } );
             }
@@ -163,13 +179,13 @@ cmds.findAllCards = function( cmdArgs, args, message )
             {
                 getCard( "/" + api_ver + "/catalog/products/" + sku + "?getExtendedFields=true", token.access_token, function( cardresults ) {
                     var jsonCard = JSON.parse( cardresults );
-                    //console.log( jsonCard );
+                    logDebug( jsonCard );
                     var i = 0;
                     jsonCard.results.forEach( function( card )  
                     {
-                        sendCard( message, card );
+                        sendCard( message.author, card );
                         i += 1;
-                        if( i > 99 ) { return; }
+                        if( i >= maxPMs ) { return; }
                     });
                 } );
             } );
@@ -177,56 +193,7 @@ cmds.findAllCards = function( cmdArgs, args, message )
     } );
 }
 
-cmds.findCardDDB = function( cmdArgs, args, message )
-{
-    currentSearch.term = eval( cmdArgs );
-    currentSearch.topResults = [];
-    currentSearch.resultCount = 0;
-    currentSearch.message = message;
-    currentSearch.params = {
-        TableName: 'TCGPlayersSync',
-        ExclusiveStartKey: undefined,
-        ScanFilter: {
-           "name": {
-                ComparisonOperator: "CONTAINS",
-                AttributeValueList: [ currentSearch.term ]
-           }
-        }
-      };
-
-    docClient.scan(currentSearch.params, onScan);
-}
-
-function onScan( err, data )
-{
-    if (err) {
-        console.log(err);
-    }else{
-        //console.log(data);
-        currentSearch.resultCount += data.Items.length;
-        if( data.Items.length > 0 )
-        {
-            data.Items.forEach( function( item ) { currentSearch.topResults.push( item ); });
-            //console.log("Found Card item " + data.Items.length + " matching cards.");
-            //printCard( data.Items[0] );
-        }
-
-        if (typeof data.LastEvaluatedKey != "undefined") {
-            currentSearch.params.ExclusiveStartKey = data.LastEvaluatedKey;
-            docClient.scan(currentSearch.params, onScan);
-        }
-        else
-        {
-            currentSearch.message.channel.send( "Found " + currentSearch.resultCount + " results for: '" + currentSearch.term + "'" );
-            if( currentSearch.topResults.length > 0 )
-            {
-                printCard( currentSearch.message, currentSearch.topResults[0] );
-            }
-        }
-    }
-}
-
-function printCard( message, card )
+function sendCard( channel, card )
 {
     var extData  = "";
     var embed = new Discord.RichEmbed(
@@ -241,25 +208,7 @@ function printCard( message, card )
         var value = extObj.value.replace( /<[^>]*>/g, '' );
         embed.addField( extObj.displayName, value, true );
     });
-    message.channel.send( embed );
-}
-
-function sendCard( message, card )
-{
-    var extData  = "";
-    var embed = new Discord.RichEmbed(
-        {
-            url: card.url,
-            title: card.name,
-            thumbnail: {
-                url: card.imageUrl
-            }
-        } );
-    card.extendedData.forEach( function( extObj ) {
-        var value = extObj.value.replace( /<[^>]*>/g, '' );
-        embed.addField( extObj.displayName, value, true );
-    });
-    message.author.send( embed );
+    channel.send( embed );
 }
 
 // Help Func
@@ -278,7 +227,7 @@ cmds.help = function( cmdArgs, args, message )
 // Image Detection
 function handleImage( message, url )
 {
-    logIt(url);
+    logInfo(url);
     var httpHandler = http;
 
     if( url.match(/https/i) )
@@ -294,7 +243,7 @@ function handleImage( message, url )
         });                                                                         
 
         response.on('end', function() {                                             
-            logIt('Image Downloaded!' );
+            logInfo('Image Downloaded!' );
             var image = Buffer.concat(data);
 
             var params = {
@@ -307,7 +256,7 @@ function handleImage( message, url )
 
             rekognition.detectLabels(params, function(err, data) {
                 if (err) {
-                    logIt(err); // an error occurred
+                    logInfo(err); // an error occurred
                 } else {
                    var reply = ""
                    data.Labels.forEach( function( label )
@@ -329,8 +278,6 @@ function handleImage( message, url )
         });                                                                         
     }).end();
 }
-
-//handleImage( "", "https://cdn.discordapp.com/attachments/520388629374435338/521001978860535828/mq2.png" );
 
 // Main Help Menu
 function generalHelp(message)
@@ -390,7 +337,7 @@ function getHelp(args, message)
     }
     catch(error)
     {
-        logIt(error.message, true);
+        logInfo(error.message, true);
     }
 }
 
@@ -413,16 +360,21 @@ function getUrl( hostName, pathToData, callBack )
 
     request.on('error', function (e)
     {
-        logIt(e.message);
+        logInfo(e.message);
     });
 
     request.end();
 }
 
 // Log certain items or errors
-function logIt(message, isError = false)
+function logDebug( message )
 {
-    if (!isError)
+    if( config.debugMode ) { logInfo( message ); }
+}
+
+function logInfo( message, isError = false )
+{
+    if( !isError )
     {
         console.log(`[${config.appname}] ` + displayTime() + "> " + message);
     }
@@ -471,7 +423,7 @@ function arrayRemove(arr, item)
         if (arr[i] === item)
         {
             arr.splice(i, 1);
-            logIt("Removed " + item + " from " + arr + " array at index [" + i + "]");
+            logInfo("Removed " + item + " from " + arr + " array at index [" + i + "]");
         }
     }
 }
@@ -570,7 +522,7 @@ function searchCards( path, access_token, term, callBack )
 
     request.on('error', function (e)
     {
-        console.log(e.message);
+        logInfo( e.message, true );
     });
 
     request.write( body );
@@ -604,7 +556,7 @@ function getCard( path, access_token, callBack )
 
     request.on('error', function (e)
     {
-        console.log(e.message);
+        logInfo( e.message, true );
     });
 
     request.end();

@@ -1,10 +1,16 @@
-{ 
-  "token"  : "Your-Sup3r-S3r3ct-Squ1rrel-T0k3n",
+{
+  "token"  : "DISCORD_BOT_TOKEN",
   "prefix" : "!",
-  "version": "1.1.0"
-  "appname": "DiscordBot",
-  "owner_id" : "1234567890123456",
+  "version": "1.0",
+  "appname": "MTGCardBot",
   "topMenu": "\nHelp Menu <required> [optional]\n----------------------------------------------------\n",
   "botMenu": "For more info on a command try: '**!help [command]**'",
+  "owner_id": "DISCORD_OWNER_ID",
+  "client_id": "TCG_PLAYER_CLIENT_API",
+  "client_secret": "TCG_PLAYER_CLIENT_SECRET",
+  "tcg_api_endpoint": "api.tcgplayer.com",
+  "tcg_api_ver": "v1.17.0",
+  "maxPMs": 100,
+  "imageDetection": 0,
   "debugMode": 0
 }
