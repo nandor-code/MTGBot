@@ -157,7 +157,7 @@ cmds.findCard = function( cmdArgs, args, message )
             {
                 getCard( "/" + api_ver + "/catalog/products/" + jsonResult.results[0] + "?getExtendedFields=true", token.access_token, function( cardresults ) {
                     var jsonCard = JSON.parse( cardresults );
-                    logDebug( jsonCard );
+                    logDebug( JSON.stringify( jsonCard ) );
                     if( jsonCard.results.length > 0 ) 
                     {
                         sendCard( message.channel, jsonCard.results[0] );
@@ -179,7 +179,7 @@ cmds.findAllCards = function( cmdArgs, args, message )
             {
                 getCard( "/" + api_ver + "/catalog/products/" + sku + "?getExtendedFields=true", token.access_token, function( cardresults ) {
                     var jsonCard = JSON.parse( cardresults );
-                    logDebug( jsonCard );
+                    logDebug( JSON.stringify( jsonCard ) );
                     var i = 0;
                     jsonCard.results.forEach( function( card )  
                     {
