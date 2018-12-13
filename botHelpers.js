@@ -2,6 +2,11 @@ module.exports = {
 appName: undefined,
 debugMode: 0,
 
+config: function( params )
+{
+    this.appName    = params.appName,
+    this.debugMopde = params.debugMode,
+},
 // Log certain items or errors
 logDebug: function( message )
 {

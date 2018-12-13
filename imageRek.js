@@ -5,6 +5,13 @@ https      : undefined,
 http       : undefined,
 helpers    : undefined,
 
+config: function( params )
+{
+    this.rekognition = params.rekognition;
+    this.https       = params.https;
+    this.http        = params.http;
+    this.helpers     = params.helpers;
+},
 handleImage: function( message, url )
 {
     this.helpers.logDebug(url);

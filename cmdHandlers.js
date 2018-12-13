@@ -1,14 +1,16 @@
 module.exports = {
 
-config: undefined,
-tcgApi: undefined,
+config : undefined,
+tcgApi : undefined,
+helpers: undefined,
 cmdList: undefined,
 
-initialize: function( cfg, api, hlp )
+config: function( params )
 {
-    this.config  = cfg;
-    this.tcgApi  = api;
-    this.helpers = hlp;
+    this.config  = params.config;
+    this.tcgApi  = params.tcgApi;
+    this.helpers = params.helpers;
+    this.cmdList = params.cmdList;
 },
 
 sendMessage: function( cmdArgs, args, message )

@@ -25,28 +25,36 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 
 const helpers = require("./botHelpers");
-helpers.debugMode = config.debugMode;
-helpers.appName   = config.appname;
+helpers.config({
+    debugMode : config.debugMode,
+    appName   : config.appname,
+});
 
 const tcgApi = require("./tcgApi");
-tcgApi.config( {
+tcgApi.config({
     uri_base      : config.tcg_api_endpoint,
     api_ver       : config.tcg_api_ver,
     client_id     : config.client_id,
     client_secret : config.client_secret,
     discord       : Discord,
-    helpers       : helpers
-} );
+    helpers       : helpers,
+});
 
 const cmds = require('./cmdHandlers');
-cmds.cmdList = require("../config/commands.json");
-cmds.initialize( config, tcgApi, helpers );
+cmds.config({
+   config  : config,
+   tcgApi  : tcgApi,
+   helpers : helpers,
+   cmdList : require("../config/commands.json"),
+});
 
 const imgRek = require("./imageRek");
-imgRek.rekognition = rekognition;
-imgRek.helpers     = helpers;
-imgRek.http        = http;
-imgRek.https       = https;
+imgRek.config({
+    rekognition : rekognition,
+    helpers     : helpers,
+    http        : http,
+    https       : https,    
+});
 
 const querystring = require('querystring');
 
