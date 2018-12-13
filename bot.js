@@ -1,3 +1,4 @@
+// pull the first 8 chars of the full commit hash
 const ver = require('./version.json').version.substring(0,7);
 
 // Load config file
