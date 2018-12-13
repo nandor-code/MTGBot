@@ -29,11 +29,14 @@ helpers.debugMode = config.debugMode;
 helpers.appName   = config.appname;
 
 const tcgApi = require("./tcgApi");
-tcgApi.uri_base      = config.tcg_api_endpoint;
-tcgApi.api_ver       = config.tcg_api_ver;
-tcgApi.client_id     = config.client_id;
-tcgApi.client_secret = config.client_secret;
-tcgApi.discord       = Discord;
+tcgApi.config( {
+    uri_base      : config.tcg_api_endpoint,
+    api_ver       : config.tcg_api_ver,
+    client_id     : config.client_id,
+    client_secret : config.client_secret,
+    discord       : Discord,
+    helpers       : helpers
+} );
 
 const cmds = require('./cmdHandlers');
 cmds.cmdList = require("../config/commands.json");

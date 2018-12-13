@@ -6,9 +6,24 @@ client_id    : undefined,
 client_secret: undefined,
 access_token : undefined,
 discord      : undefined,
+helpers      : undefined,
 rp           : require('request-promise'),
 https        : require('https'),
 
+config: function( params )
+{
+    this.uri_base      = params.uri_base;
+    this.api_ver       = params.api_ver;
+    this.client_id     = params.client_id;
+    this.client_secret = params.client_secret;
+    this.discord       = params.discord;
+    this.helpers       = params.helpers;
+
+    this.getRPBT().then( ( function ( token ) {
+    	this.access_token = token.access_token;
+        this.helpers.logDebug( "Api Token: " + this.access_token );
+    }).bind(this) );
+},
 getRPBT: async function()
 {
     var options = {
@@ -66,7 +81,7 @@ searchCards: function( term, callBack )
 
     request.on('error', function (e)
     {
-        logInfo( e.message, true );
+        this.helpers.logInfo( e.message, true );
     });
 
     request.write( body );
@@ -101,7 +116,7 @@ getCard: function( productId, callBack )
 
     request.on('error', function (e)
     {
-        logInfo( e.message, true );
+        this.helpers.logInfo( e.message, true );
     });
 
     request.end();

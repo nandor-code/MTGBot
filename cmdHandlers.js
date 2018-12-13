@@ -9,11 +9,6 @@ initialize: function( cfg, api, hlp )
     this.config  = cfg;
     this.tcgApi  = api;
     this.helpers = hlp;
-
-    this.tcgApi.getRPBT().then( ( function ( token ) {
-    	this.tcgApi.access_token = token.access_token;
-        this.helpers.logDebug( "Api Token: " + this.tcgApi.access_token );
-    }).bind(this) );
 },
 
 sendMessage: function( cmdArgs, args, message )
