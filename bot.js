@@ -56,20 +56,8 @@ imgRek.config({
     https       : https,    
 });
 
-const querystring = require('querystring');
-
-// Debug Mode - gives me access by user id to certain commands while on
-const debugMode = config.debugMode;
-
-// Developer ID - Set this to bypass all permissions checks for this user id. Set it 
-// to letters (something it could never be) when not in use
-const bypassId = config.owner_id;
-
 helpers.logInfo(`DiscordBot ${config.version} (${ver}) starting up with owner ${config.owner_id}.`);
 
-// Anti-Spam Functions - Do not let users flood the bot/channel
-var lastResponse = new Array ("Empty");
-var spamTimeout = 600000;
 var maxFileSize = 5 * 1024 * 1024; // 5 MB
     
 // Perform on connect/disconnect
