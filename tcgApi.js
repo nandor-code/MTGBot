@@ -48,7 +48,6 @@ getRPBT: async function()
 searchCards: function( term, callBack )
 {
     var path = "/" + this.api_ver + "/catalog/categories/1/search";
-    var data = ""
     var body = JSON.stringify({
             filters: [
                 {
@@ -56,6 +55,69 @@ searchCards: function( term, callBack )
                   values:[term]
                 } ] } );
 
+    this.apiPostRequest( path, body, callBack );
+},
+
+getCard: function( productId, callBack )
+{
+    var path = "/" + this.api_ver + "/catalog/products/" + productId + "?getExtendedFields=true";
+    
+    this.apiGetRequest( path, callBack );
+},
+
+sendCard: function( channel, card )
+{
+    var extData  = "";
+    var embed = new this.discord.RichEmbed(
+        {
+            url: card.url,
+            title: card.name,
+            thumbnail: {
+                url: card.imageUrl
+            }
+        } );
+    card.extendedData.forEach( function( extObj ) {
+        var value = extObj.value.replace( /<[^>]*>/g, '' );
+        embed.addField( extObj.displayName, value, true );
+    });
+    channel.send( embed );
+},
+apiGetRequest: function( path, callBack )
+{
+    var data = ""
+
+    var options = {
+        method: 'GET',
+        host: this.uri_base,
+        path: path,
+        headers: {
+            'Authorization': 'Bearer ' + this.access_token
+        }
+    };
+
+    var request = this.https.request( options, function (res)
+    {
+        res.on('data', function (chunk)
+        {
+            data += chunk;
+        });
+        res.on('end', function ()
+        {
+           callBack( data );
+        });
+    });
+
+    request.on('error', function (e)
+    {
+        this.helpers.logInfo( e.message, true );
+    });
+
+    request.end();  
+},
+apiPostRequest: function( path, body, callBack )
+{
+    var data = "";
+    
     var options = {
         method: 'POST',
         host: this.uri_base,
@@ -87,57 +149,5 @@ searchCards: function( term, callBack )
     request.write( body );
     request.end();
 },
-
-getCard: function( productId, callBack )
-{
-    var path = "/" + this.api_ver + "/catalog/products/" + productId + "?getExtendedFields=true";
-    var data = ""
-
-    var options = {
-        method: 'GET',
-        host: this.uri_base,
-        path: path,
-        headers: {
-            'Authorization': 'Bearer ' + this.access_token
-        }
-    };
-
-    var request = this.https.request( options, function (res)
-    {
-        res.on('data', function (chunk)
-        {
-            data += chunk;
-        });
-        res.on('end', function ()
-        {
-           callBack( data );
-        });
-    });
-
-    request.on('error', function (e)
-    {
-        this.helpers.logInfo( e.message, true );
-    });
-
-    request.end();
-},
-
-sendCard: function( channel, card )
-{
-    var extData  = "";
-    var embed = new this.discord.RichEmbed(
-        {
-            url: card.url,
-            title: card.name,
-            thumbnail: {
-                url: card.imageUrl
-            }
-        } );
-    card.extendedData.forEach( function( extObj ) {
-        var value = extObj.value.replace( /<[^>]*>/g, '' );
-        embed.addField( extObj.displayName, value, true );
-    });
-    channel.send( embed );
-}
 
 };
