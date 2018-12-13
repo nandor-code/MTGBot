@@ -1,4 +1,5 @@
 node_modules
+version.json
 config.json
 package-lock.json
 commit.sh

@@ -1,11 +1,12 @@
 ## Discord MTGBot Source
+====
 
-### Requirements: Node.js, Discord.js, Supervisor, Basic knowledge of servers, json, javascript, and node.js
+#### Requirements: Node.js, Discord.js, Supervisor, Basic knowledge of servers, json, javascript, and node.js
 
 + mkdir BotDeploy
 + Clone the repository
 + cd MTGBot
-+ npm i discord.js 
++ npm i discord.js
 + npm i request
 + npm i request-promise
 + npm i supervisor
