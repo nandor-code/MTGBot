@@ -1,6 +1,6 @@
 {
-  "token"  : "DISCORD_BOT_TOKEN",
-  "prefix" : "!",
+  "token": "DISCORD_BOT_TOKEN",
+  "prefix": "!",
   "version": "1.0",
   "appname": "MTGCardBot",
   "topMenu": "\nHelp Menu <required> [optional]\n----------------------------------------------------\n",
@@ -12,5 +12,6 @@
   "tcg_api_ver": "v1.17.0",
   "maxPMs": 100,
   "imageDetection": 0,
+  "maxFileSize": 5242880,
   "debugMode": 0
 }

@@ -19,8 +19,6 @@ AWS.config.update(
     region: AWSParameters.AWS.region
 });
 
-const rekognition = new AWS.Rekognition();
-
 // Load base, create a client connection, and load our configuration
 const Discord = require("discord.js");
 const client = new Discord.Client();
@@ -55,15 +53,13 @@ cmds.config(
 const imgRek = require("./imageRek");
 imgRek.config(
 {
-    rekognition: rekognition,
+    rekognition: new AWS.Rekognition(),
     helpers: helpers,
     http: http,
     https: https,
 });
 
 helpers.logInfo(`DiscordBot ${config.version} (${ver}) starting up with owner ${config.owner_id}.`);
-
-var maxFileSize = 5 * 1024 * 1024; // 5 MB
 
 // Perform on connect/disconnect
 client.on("ready", () =>
@@ -135,7 +131,7 @@ function handleMessageImage(message)
     {
         url = matchAry[0];
     }
-    else if (message.attachments.array().length > 0 && message.attachments.array()[0].filesize < maxFileSize)
+    else if (message.attachments.array().length > 0 && message.attachments.array()[0].filesize < config.maxFileSize)
     {
         url = message.attachments.array()[0].url;
     }
