@@ -37,7 +37,7 @@ module.exports = {
             var jsonResult = JSON.parse(results);
             sendTo.send(this.buildResultString(jsonResult, term));
 
-            if (jsonResult.result.length > 0)
+            if (jsonResult.results.length > 0)
             {
                 this.helpers.logDebug(jsonResult.results.join(","));
                 this.tcgApi.getCard(jsonResult.results.join(","), (function(cardresults)
