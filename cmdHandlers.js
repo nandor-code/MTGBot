@@ -34,7 +34,7 @@ module.exports = {
         this.tcgApi.searchCardsByName(term, (function(results)
         {
             var jsonResult = JSON.parse(results);
-            message.author.send(this.buildResultString(jsonResult, term));
+            sendTo.send(this.buildResultString(jsonResult, term));
             jsonResult.results.forEach((function(prod)
             {
                 this.tcgApi.getCard(prod, (function(cardresults)
