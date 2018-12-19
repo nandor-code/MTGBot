@@ -36,26 +36,30 @@ module.exports = {
         {
             var jsonResult = JSON.parse(results);
             sendTo.send(this.buildResultString(jsonResult, term));
-            this.helpers.logDebug(jsonResult.results.join(","));
-            this.tcgApi.getCard(jsonResult.results.join(","), (function(cardresults)
+
+            if (jsonResult.result.length > 0)
             {
-                var jsonCard = JSON.parse(cardresults);
-                this.helpers.logDebug(JSON.stringify(jsonCard));
-                try
+                this.helpers.logDebug(jsonResult.results.join(","));
+                this.tcgApi.getCard(jsonResult.results.join(","), (function(cardresults)
                 {
-                    jsonCard.results.forEach((function(card, index)
+                    var jsonCard = JSON.parse(cardresults);
+                    this.helpers.logDebug(JSON.stringify(jsonCard));
+                    try
                     {
-                        if (index >= maxResults) { throw BreakException; }
+                        jsonCard.results.forEach((function(card, index)
+                        {
+                            if (index >= maxResults) { throw BreakException; }
 
-                        setTimeout((function() { this.tcgApi.sendCard(sendTo, card); }).bind(this, sendTo, card), 500);
-                    }), this);
-                }
-                catch (e)
-                {
-                    if (e !== BreakException) throw e;
-                }
+                            setTimeout((function() { this.tcgApi.sendCard(sendTo, card); }).bind(this, sendTo, card), 500);
+                        }), this);
+                    }
+                    catch (e)
+                    {
+                        if (e !== BreakException) throw e;
+                    }
 
-            }).bind(this));
+                }).bind(this));
+            }
         }).bind(this));
     },
 
