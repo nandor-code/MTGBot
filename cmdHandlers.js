@@ -31,24 +31,30 @@ module.exports = {
     dofindCards: function(cmdArgs, args, sendTo, maxResults)
     {
         var term = eval(cmdArgs);
+        var BreakException = {};
         this.tcgApi.searchCardsByName(term, (function(results)
         {
             var jsonResult = JSON.parse(results);
             sendTo.send(this.buildResultString(jsonResult, term));
-            jsonResult.results.forEach((function(prod)
+            this.helpers.logDebug(jsonResult.results.join(","));
+            this.tcgApi.getCard(jsonResult.results.join(","), (function(cardresults)
             {
-                this.tcgApi.getCard(prod, (function(cardresults)
+                var jsonCard = JSON.parse(cardresults);
+                this.helpers.logDebug(JSON.stringify(jsonCard));
+                try
                 {
-                    var jsonCard = JSON.parse(cardresults);
-                    this.helpers.logDebug(JSON.stringify(jsonCard));
-                    var i = 0;
-                    jsonCard.results.forEach((function(card)
+                    jsonCard.results.forEach((function(card, index)
                     {
-                        this.tcgApi.sendCard(sendTo, card);
-                        i += 1;
-                        if (i >= maxResults) { return; }
-                    }).bind(this));
-                }).bind(this));
+                        if (index >= maxResults) { throw BreakException; }
+
+                        setTimeout((function() { this.tcgApi.sendCard(sendTo, card); }).bind(this, sendTo, card), 500);
+                    }), this);
+                }
+                catch (e)
+                {
+                    if (e !== BreakException) throw e;
+                }
+
             }).bind(this));
         }).bind(this));
     },
