@@ -5,7 +5,7 @@ module.exports = {
     helpers: undefined,
     cmdList: undefined,
 
-    config: function (params)
+    config: function(params)
     {
         this.config = params.config;
         this.tcgApi = params.tcgApi;
@@ -13,59 +13,52 @@ module.exports = {
         this.cmdList = params.cmdList;
     },
 
-    sendMessage: function (cmdArgs, args, message)
+    sendMessage: function(cmdArgs, args, message)
     {
         message.channel.send(eval(cmdArgs));
     },
 
-    findCard: function (cmdArgs, args, message)
+    findCard: function(cmdArgs, args, message)
     {
-        var term = eval(cmdArgs);
-        this.tcgApi.searchCardsByName(term, (function (results)
-        {
-            var jsonResult = JSON.parse(results);
-            message.channel.send("Found " + jsonResult.totalItems + " results for: '" + term + "'");
-            if (jsonResult.totalItems > 0)
-            {
-                this.tcgApi.getCard(jsonResult.results[0], (function (cardresults)
-                {
-                    var jsonCard = JSON.parse(cardresults);
-                    this.helpers.logDebug(JSON.stringify(jsonCard));
-                    if (jsonCard.results.length > 0)
-                    {
-                        this.tcgApi.sendCard(message.channel, jsonCard.results[0]);
-                    }
-                }).bind(this));
-            }
-        }).bind(this));
+        this.dofindCards(cmdArgs, args, message.channel, 1);
     },
 
-    findAllCards: function (cmdArgs, args, message)
+    findAllCards: function(cmdArgs, args, message)
+    {
+        this.dofindCards(cmdArgs, args, message.author, this.config.maxPMs);
+    },
+
+    dofindCards: function(cmdArgs, args, sendTo, maxResults)
     {
         var term = eval(cmdArgs);
-        this.tcgApi.searchCardsByName(term, (function (results)
+        this.tcgApi.searchCardsByName(term, (function(results)
         {
             var jsonResult = JSON.parse(results);
-            message.author.send("Found " + jsonResult.totalItems + " results for: '" + term + "'");
-            jsonResult.results.forEach((function (prod)
+            message.author.send(this.buildResultString(jsonResult, term));
+            jsonResult.results.forEach((function(prod)
             {
-                this.tcgApi.getCard(prod, (function (cardresults)
+                this.tcgApi.getCard(prod, (function(cardresults)
                 {
                     var jsonCard = JSON.parse(cardresults);
                     this.helpers.logDebug(JSON.stringify(jsonCard));
                     var i = 0;
-                    jsonCard.results.forEach((function (card)
+                    jsonCard.results.forEach((function(card)
                     {
-                        this.tcgApi.sendCard(message.author, card);
+                        this.tcgApi.sendCard(sendTo, card);
                         i += 1;
-                        if (i >= this.config.maxPMs) { return; }
+                        if (i >= maxResults) { return; }
                     }).bind(this));
                 }).bind(this));
             }).bind(this));
         }).bind(this));
     },
 
-    help: function (cmdArgs, args, message)
+    buildResultString: function(jsonResult, term)
+    {
+        return "Found " + jsonResult.totalItems + (jsonResult.totalItems != 1 ? " results" : " result") + " for: '" + term + "'";
+    },
+
+    help: function(cmdArgs, args, message)
     {
         if (args.length == 0)
         {
@@ -78,7 +71,7 @@ module.exports = {
     },
 
     // Main Help Menu
-    generalHelp: function (message)
+    generalHelp: function(message)
     {
         let hArray = new Array();
         for (var key in this.cmdList)
@@ -89,7 +82,7 @@ module.exports = {
     },
 
     // Help Sub-Menus
-    getHelp: function (args, message)
+    getHelp: function(args, message)
     {
         try
         {
