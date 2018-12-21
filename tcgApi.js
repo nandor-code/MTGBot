@@ -10,7 +10,7 @@ module.exports = {
     rp: require('request-promise'),
     https: require('https'),
 
-    config: function(params)
+    config: function (params)
     {
         this.uri_base = params.uri_base;
         this.api_ver = params.api_ver;
@@ -19,13 +19,13 @@ module.exports = {
         this.discord = params.discord;
         this.helpers = params.helpers;
 
-        this.getRPBT().then((function(token)
+        this.getRPBT().then((function (token)
         {
             this.access_token = token.access_token;
             this.helpers.logDebug("Api Token: " + this.access_token);
         }).bind(this));
     },
-    getRPBT: async function()
+    getRPBT: async function ()
     {
         var options = {
             method: 'POST',
@@ -49,7 +49,7 @@ module.exports = {
         }
     },
 
-    searchCardsByName: function(term, callBack)
+    searchCardsByName: function (term, callBack)
     {
         var path = "/" + this.api_ver + "/catalog/categories/1/search";
         var body = JSON.stringify(
@@ -65,14 +65,14 @@ module.exports = {
         this.apiPostRequest(path, body, callBack);
     },
 
-    getCard: function(productId, callBack)
+    getCard: function (productId, callBack)
     {
         var path = "/" + this.api_ver + "/catalog/products/" + productId + "?getExtendedFields=true&limit=100";
         this.helpers.logInfo(path);
         this.apiGetRequest(path, callBack);
     },
 
-    sendCard: function(channel, card)
+    sendCard: function (channel, card)
     {
         var extData = "";
         var embed = new this.discord.RichEmbed(
@@ -84,14 +84,14 @@ module.exports = {
                 url: card.imageUrl
             }
         });
-        card.extendedData.forEach(function(extObj)
+        card.extendedData.forEach(function (extObj)
         {
             var value = extObj.value.replace(/<[^>]*>/g, '');
             embed.addField(extObj.displayName, value, true);
         });
         channel.send(embed);
     },
-    apiGetRequest: function(path, callBack)
+    apiGetRequest: function (path, callBack)
     {
         var data = ""
 
@@ -105,26 +105,26 @@ module.exports = {
             }
         };
 
-        var request = this.https.request(options, function(res)
+        var request = this.https.request(options, function (res)
         {
-            res.on('data', function(chunk)
+            res.on('data', function (chunk)
             {
                 data += chunk;
             });
-            res.on('end', function()
+            res.on('end', function ()
             {
                 callBack(data);
             });
         });
 
-        request.on('error', function(e)
+        request.on('error', function (e)
         {
             this.helpers.logInfo(e.message, true);
         });
 
         request.end();
     },
-    apiPostRequest: function(path, body, callBack)
+    apiPostRequest: function (path, body, callBack)
     {
         var data = "";
 
@@ -140,19 +140,19 @@ module.exports = {
             }
         };
 
-        var request = this.https.request(options, function(res)
+        var request = this.https.request(options, function (res)
         {
-            res.on('data', function(chunk)
+            res.on('data', function (chunk)
             {
                 data += chunk;
             });
-            res.on('end', function()
+            res.on('end', function ()
             {
                 callBack(data);
             });
         });
 
-        request.on('error', function(e)
+        request.on('error', function (e)
         {
             this.helpers.logInfo(e.message, true);
         });
