@@ -7,6 +7,7 @@ module.exports = {
         this.appName = params.appName;
         this.debugMopde = params.debugMode;
     },
+
     // Log certain items or errors
     logDebug: function (message)
     {
@@ -86,6 +87,5 @@ module.exports = {
             }
         }
         return true;
-    }
-
+    },
 };

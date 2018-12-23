@@ -25,6 +25,7 @@ module.exports = {
             this.helpers.logDebug("Api Token: " + this.access_token);
         }).bind(this));
     },
+
     getRPBT: async function ()
     {
         var options = {
@@ -98,6 +99,7 @@ module.exports = {
         });
         channel.send(embed);
     },
+
     apiGetRequest: function (path, callBack)
     {
         var data = ""
@@ -131,6 +133,7 @@ module.exports = {
 
         request.end();
     },
+
     apiPostRequest: function (path, body, callBack)
     {
         var data = "";
@@ -167,5 +170,4 @@ module.exports = {
         request.write(body);
         request.end();
     },
-
 };

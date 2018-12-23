@@ -12,6 +12,7 @@ module.exports = {
         this.http = params.http;
         this.helpers = params.helpers;
     },
+
     handleImage: function (message, url)
     {
         this.helpers.logDebug(url);
@@ -72,6 +73,5 @@ module.exports = {
                 }).bind(this));
             }).bind(this));
         }).bind(this)).end();
-    }
-
+    },
 }
