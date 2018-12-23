@@ -51,15 +51,22 @@ module.exports = {
 
     searchCardsByName: function (term, callBack)
     {
+        this.searchCards("ProductName", term, callBack)
+    },
+
+    searchCards: function (filter, term, callBack)
+    {
         var path = "/" + this.api_ver + "/catalog/categories/1/search";
         var body = JSON.stringify(
         {
             limit: 100,
             filters: [
                 {
-                    name: "ProductName",
+                    name: filter,
                     values: [term]
-            }]
+                }
+            ],
+            sort: "Relevance"
         });
 
         this.apiPostRequest(path, body, callBack);
